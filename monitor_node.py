@@ -1,5 +1,16 @@
+
 import can
 import statistics
+from gpiozero import LED
+
+green = LED(17)
+yellow = LED(27)
+red = LED(22)
+
+def set_light(light):
+    for led in (green, yellow, red):
+        led.off()
+    light.on()
 
 bus = can.Bus(interface="socketcan", channel="vcan0")
 
@@ -11,6 +22,7 @@ recent = []
 while True:
     msg = bus.recv(timeout=3)
     if msg is None:
+        set_light(red)
         print("FAULT: timeout - sensor not responding")
         continue
     if msg.arbitration_id != 0x100:
@@ -37,8 +49,11 @@ while True:
     falling = len(recent) == 7 and all(recent[i] > recent[i + 1] for i in range(6))
 
     if temp > ucl or temp < lcl:
+        set_light(red)
         print(f"{temp:.2f} C  FAULT: out of control")
     elif rising or falling:
+        set_light(yellow)
         print(f"{temp:.2f} C  WARNING: drift")
     else:
+        set_light(green)
         print(f"{temp:.2f} C  OK")
